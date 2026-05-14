@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useAuth } from "../../hooks/useAuth";
 import {
@@ -17,6 +17,7 @@ import {
   updateSession,
   listMetrics,
   updateNextSession,
+  removeClient,
 } from "../../lib/data";
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
@@ -27,6 +28,7 @@ const LOCATIONS = ["SW Location", "SE Location"];
 
 export default function ClientDetail() {
   const { id } = useParams();
+  const nav = useNavigate();
   const { user } = useAuth();
   const [client, setClient] = useState(null);
   const [notes, setNotes] = useState("");
@@ -45,6 +47,8 @@ export default function ClientDetail() {
   const [nextAt, setNextAt] = useState("");
   const [nextLoc, setNextLoc] = useState(LOCATIONS[0]);
   const [nextSaved, setNextSaved] = useState(false);
+  const [showRemove, setShowRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -79,6 +83,17 @@ export default function ClientDetail() {
     setClient((c) => c ? { ...c, next_session_at: iso, next_session_location: nextLoc } : c);
     setNextSaved(true);
     setTimeout(() => setNextSaved(false), 1500);
+  };
+
+  const doRemoveClient = async () => {
+    setRemoving(true);
+    const { error } = await removeClient(id);
+    setRemoving(false);
+    if (error) {
+      alert(`Could not remove client: ${error.message}`);
+      return;
+    }
+    nav("/trainer", { replace: true });
   };
 
   const clearNextSession = async () => {
@@ -379,6 +394,41 @@ export default function ClientDetail() {
         <Chart title="Bodyweight" data={weightChartData} dataKey="weight" />
         <Chart title="Waist" data={waistChartData} dataKey="waist" />
       </section>
+
+      {/* Danger zone */}
+      <section className="mt-8">
+        <h2 className="font-display font-bold uppercase text-lg text-red-700 mb-2">Danger zone</h2>
+        <div className="card border-red-200">
+          <p className="text-sm text-slate-700">
+            Remove this client from your roster. Deletes their profile, every workout they've logged,
+            every body metric, and all schedule and program assignments. This can't be undone.
+          </p>
+          <button onClick={() => setShowRemove(true)} className="btn-danger mt-3">
+            <IconTrash /> Remove client
+          </button>
+        </div>
+      </section>
+
+      {/* Remove client confirmation */}
+      {showRemove && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center" onClick={() => !removing && setShowRemove(false)}>
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display font-bold uppercase text-2xl text-red-700">Remove {client.full_name?.split(" ")[0]}?</h2>
+            <p className="mt-2 text-slate-700">
+              This deletes all of their data permanently. They will lose access to the app.
+              Their login email cannot be reused for a new client without first removing the auth user from Supabase.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={doRemoveClient} disabled={removing} className="btn-danger flex-1">
+                {removing ? "Removing" : "Yes, remove"}
+              </button>
+              <button onClick={() => setShowRemove(false)} disabled={removing} className="btn-ghost">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Assign modal */}
       {showAssign && (

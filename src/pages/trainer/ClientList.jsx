@@ -5,6 +5,7 @@ import { listClients, createInvite, getClientStats } from "../../lib/data";
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
 import EmptyState from "../../components/shared/EmptyState";
+import WelcomeCard from "../../components/shared/WelcomeCard";
 import { IconPlus, IconChevronRight, IconCopy, IconCheck, IconLogout } from "../../components/shared/Icons";
 
 export default function ClientList() {
@@ -78,6 +79,20 @@ export default function ClientList() {
           </>
         }
       />
+
+      <WelcomeCard
+        storageKey="tbj.welcome.trainer"
+        eyebrow="Welcome to TrainedByJ"
+        title="Your coach dashboard"
+        items={[
+          { title: "Invite clients", body: "Tap the + button up top. Enter their email, share the link." },
+          { title: "Build programs", body: "On the Programs tab. Reusable templates or per-client plans." },
+          { title: "Schedule sessions", body: "Open any client. Set their recurring days and the next meet-up." },
+          { title: "Track and coach", body: "Add private notes, leave feedback on workouts, watch progress charts." },
+        ]}
+        footerLink={{ to: "/trainer/how-it-works", label: "How it works" }}
+      />
+
       <div className="mt-4 space-y-3">
         {loading && <div className="text-slate-500">Loading clients</div>}
         {!loading && clients.length === 0 && (

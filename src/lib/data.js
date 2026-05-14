@@ -14,6 +14,30 @@ export async function listClients(trainerId) {
     .order("full_name");
 }
 
+// Cascading delete of a client and all their data. Returns the first error
+// encountered (best-effort cleanup — if a child delete fails the rest still try).
+export async function removeClient(clientId) {
+  // 1. Clear all the client's session sets (cascades from sessions delete too,
+  //    but doing it explicitly is safer in case the FK isn't ON DELETE CASCADE).
+  const sessionIds = await supabase
+    .from("sessions")
+    .select("id")
+    .eq("client_id", clientId);
+  if (sessionIds.data?.length) {
+    const ids = sessionIds.data.map((s) => s.id);
+    await supabase.from("session_sets").delete().in("session_id", ids);
+  }
+
+  await supabase.from("sessions").delete().eq("client_id", clientId);
+  await supabase.from("body_metrics").delete().eq("client_id", clientId);
+  await supabase.from("client_programs").delete().eq("client_id", clientId);
+  await supabase.from("training_schedule").delete().eq("client_id", clientId);
+  await supabase.from("client_notes").delete().eq("client_id", clientId);
+
+  // Finally the profile row itself
+  return supabase.from("profiles").delete().eq("id", clientId);
+}
+
 export async function updateNextSession(clientId, { next_session_at, next_session_location }) {
   return supabase
     .from("profiles")

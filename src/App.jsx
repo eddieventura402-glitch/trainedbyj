@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/shared/ProtectedRoute";
 import Login from "./pages/Login";
 import Join from "./pages/Join";
 import Setup from "./pages/Setup";
+import HowItWorks from "./pages/HowItWorks";
 
 import TrainerLayout from "./pages/trainer/TrainerLayout";
 import ClientList from "./pages/trainer/ClientList";
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="clients/:id" element={<ClientDetail />} />
             <Route path="programs" element={<Programs />} />
             <Route path="programs/:id" element={<ProgramEditor />} />
+            <Route path="how-it-works" element={<HowItWorks role="trainer" />} />
           </Route>
 
           <Route
@@ -68,6 +70,7 @@ export default function App() {
             <Route path="history" element={<History />} />
             <Route path="metrics" element={<BodyMetrics />} />
             <Route path="progress" element={<Progress />} />
+            <Route path="how-it-works" element={<HowItWorks role="client" />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

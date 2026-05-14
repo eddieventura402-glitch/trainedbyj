@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { getSchedule, listClientPrograms, getClientStats } from "../../lib/data";
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
+import WelcomeCard from "../../components/shared/WelcomeCard";
 import { IconPlus, IconLogout } from "../../components/shared/Icons";
 
 const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -38,6 +39,19 @@ export default function Home() {
             <IconLogout />
           </button>
         }
+      />
+
+      <WelcomeCard
+        storageKey="tbj.welcome.client"
+        eyebrow="Welcome aboard"
+        title="Start training with Jared"
+        items={[
+          { title: "Log every workout", body: "Tap Log to record strength sets or cardio. Volume calculates as you go." },
+          { title: "Watch the demos", body: "Tap How on any exercise to see a GIF and step-by-step instructions." },
+          { title: "Track your body", body: "Body tab logs weight, waist, arms, and body fat over time." },
+          { title: "See your progress", body: "Stats tab charts your volume and measurements. Coach feedback lives on each session." },
+        ]}
+        footerLink={{ to: "/client/how-it-works", label: "How it works" }}
       />
 
       {/* Next session (set by Jared) */}
