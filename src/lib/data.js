@@ -14,6 +14,18 @@ export async function listClients(trainerId) {
     .order("full_name");
 }
 
+export async function updateNextSession(clientId, { next_session_at, next_session_location }) {
+  return supabase
+    .from("profiles")
+    .update({
+      next_session_at: next_session_at || null,
+      next_session_location: next_session_location || null,
+    })
+    .eq("id", clientId)
+    .select()
+    .single();
+}
+
 // Client notes
 export async function getClientNotes(trainerId, clientId) {
   return supabase

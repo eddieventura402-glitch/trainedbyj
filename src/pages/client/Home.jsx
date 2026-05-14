@@ -40,21 +40,42 @@ export default function Home() {
         }
       />
 
+      {/* Next session (set by Jared) */}
+      {profile?.next_session_at && (
+        <section className="mt-4">
+          <div className="card bg-brand-900 text-white border-brand-900">
+            <div className="text-xs uppercase tracking-widest font-bold text-brand-200">Next session with Jared</div>
+            <div className="font-display font-bold text-3xl uppercase mt-1 leading-tight">
+              {new Date(profile.next_session_at).toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
+            </div>
+            <div className="mt-1 text-brand-100 text-lg">
+              {new Date(profile.next_session_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              {profile.next_session_location && <> · {profile.next_session_location}</>}
+            </div>
+            <Link to="/client/log" className="mt-4 inline-flex items-center gap-2 px-5 h-12 rounded-xl bg-white text-brand-900 font-semibold uppercase tracking-wide">
+              <IconPlus /> Start workout
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* Today */}
-      <section className="mt-4">
-        <div className="card bg-brand-900 text-white border-brand-900">
-          <div className="text-xs uppercase tracking-widest font-bold text-brand-200">Today</div>
-          <div className="font-display font-bold text-3xl uppercase mt-1">{today}</div>
-          {todaySchedule ? (
-            <div className="mt-1 text-brand-100">Training at {formatTime(todaySchedule.time_of_day)}</div>
-          ) : (
-            <div className="mt-1 text-brand-100">No session scheduled.</div>
-          )}
-          <Link to="/client/log" className="mt-4 inline-flex items-center gap-2 px-5 h-12 rounded-xl bg-white text-brand-900 font-semibold uppercase tracking-wide">
-            <IconPlus /> Start workout
-          </Link>
-        </div>
-      </section>
+      {!profile?.next_session_at && (
+        <section className="mt-4">
+          <div className="card bg-brand-900 text-white border-brand-900">
+            <div className="text-xs uppercase tracking-widest font-bold text-brand-200">Today</div>
+            <div className="font-display font-bold text-3xl uppercase mt-1">{today}</div>
+            {todaySchedule ? (
+              <div className="mt-1 text-brand-100">Training at {formatTime(todaySchedule.time_of_day)}</div>
+            ) : (
+              <div className="mt-1 text-brand-100">No session scheduled.</div>
+            )}
+            <Link to="/client/log" className="mt-4 inline-flex items-center gap-2 px-5 h-12 rounded-xl bg-white text-brand-900 font-semibold uppercase tracking-wide">
+              <IconPlus /> Start workout
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Stats */}
       <section className="mt-5 grid grid-cols-3 gap-3">

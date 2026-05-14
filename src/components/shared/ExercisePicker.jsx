@@ -1,22 +1,36 @@
-import { useMemo, useState } from "react";
-import exercises from "../../data/exercises.json";
+import { useEffect, useMemo, useState } from "react";
+import { loadExercises, imageUrl } from "../../lib/exercises";
+import ExerciseDemo from "./ExerciseDemo";
 import { IconSearch, IconX, IconPlus } from "./Icons";
 
 export default function ExercisePicker({ onPick, onClose, allowCustom = true }) {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [custom, setCustom] = useState("");
+  const [demoFor, setDemoFor] = useState(null);
+
+  useEffect(() => {
+    loadExercises().then((data) => {
+      setList(data);
+      setLoading(false);
+    });
+  }, []);
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return exercises.slice(0, 60);
-    return exercises.filter(
-      (e) =>
-        e.name.toLowerCase().includes(term) ||
-        e.target.toLowerCase().includes(term) ||
-        e.equipment.toLowerCase().includes(term) ||
-        e.bodyPart.toLowerCase().includes(term)
-    );
-  }, [q]);
+    const source = list;
+    if (!term) return source.slice(0, 60);
+    return source
+      .filter(
+        (e) =>
+          e.name?.toLowerCase().includes(term) ||
+          e.target?.toLowerCase().includes(term) ||
+          e.equipment?.toLowerCase().includes(term) ||
+          e.body_part?.toLowerCase().includes(term)
+      )
+      .slice(0, 100);
+  }, [q, list]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={onClose}>
@@ -30,7 +44,7 @@ export default function ExercisePicker({ onPick, onClose, allowCustom = true }) 
             <IconX />
           </button>
         </div>
-        <div className="p-4">
+        <div className="p-4 pb-2">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><IconSearch /></span>
             <input
@@ -44,19 +58,39 @@ export default function ExercisePicker({ onPick, onClose, allowCustom = true }) 
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
-          {results.map((e) => (
-            <button
-              key={e.id}
-              onClick={() => onPick({ id: e.id, name: e.name })}
-              className="w-full text-left p-3 rounded-xl border border-brand-100 hover:border-brand-600 hover:bg-brand-50 transition-colors"
-            >
-              <div className="font-semibold text-brand-900">{e.name}</div>
-              <div className="text-xs uppercase tracking-wide text-slate-500">
-                {e.target} · {e.equipment} · {e.bodyPart}
-              </div>
-            </button>
+          {loading && <div className="text-center text-slate-500 py-8">Loading exercises</div>}
+          {!loading && results.map((e) => (
+            <div key={e.id} className="flex items-stretch gap-2 border border-brand-100 rounded-xl overflow-hidden hover:border-brand-600 transition-colors">
+              <button
+                onClick={() => setDemoFor(e)}
+                aria-label={`Demo ${e.name}`}
+                className="shrink-0 w-16 h-16 bg-slate-50 grid place-items-center overflow-hidden"
+              >
+                {imageUrl(e) ? (
+                  <img src={imageUrl(e)} alt="" className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                  <span className="text-slate-300 text-xs">no img</span>
+                )}
+              </button>
+              <button
+                onClick={() => onPick({ id: e.id, name: e.name })}
+                className="flex-1 text-left p-2.5 hover:bg-brand-50"
+              >
+                <div className="font-semibold text-brand-900 leading-tight">{e.name}</div>
+                <div className="text-[11px] uppercase tracking-wide text-slate-500 mt-0.5">
+                  {e.target} · {e.equipment}
+                </div>
+              </button>
+              <button
+                onClick={() => setDemoFor(e)}
+                className="px-3 text-[10px] uppercase tracking-widest font-bold text-brand-700 hover:bg-brand-50"
+                aria-label={`How to do ${e.name}`}
+              >
+                How
+              </button>
+            </div>
           ))}
-          {results.length === 0 && (
+          {!loading && results.length === 0 && (
             <div className="text-center text-slate-500 py-8">No matches.</div>
           )}
         </div>
@@ -85,6 +119,14 @@ export default function ExercisePicker({ onPick, onClose, allowCustom = true }) 
           </div>
         )}
       </div>
+
+      {demoFor && (
+        <ExerciseDemo
+          exerciseId={demoFor.id}
+          exerciseName={demoFor.name}
+          onClose={() => setDemoFor(null)}
+        />
+      )}
     </div>
   );
 }

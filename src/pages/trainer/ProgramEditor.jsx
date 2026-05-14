@@ -12,6 +12,7 @@ import {
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
 import ExercisePicker from "../../components/shared/ExercisePicker";
+import ExerciseDemo from "../../components/shared/ExerciseDemo";
 import { IconPlus, IconTrash } from "../../components/shared/Icons";
 
 const SET_TYPES = ["warmup", "heavy", "volume"];
@@ -25,6 +26,7 @@ export default function ProgramEditor() {
   const [isTemplate, setIsTemplate] = useState(false);
   const [exercises, setExercises] = useState([]);
   const [showPicker, setShowPicker] = useState(false);
+  const [demoFor, setDemoFor] = useState(null);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -132,6 +134,13 @@ export default function ProgramEditor() {
           <div key={ex.id} className="card space-y-2">
             <div className="flex items-center gap-2">
               <div className="font-display font-bold text-brand-900 flex-1">{i + 1}. {ex.exercise_name}</div>
+              <button
+                onClick={() => setDemoFor({ id: ex.exercise_db_id, name: ex.exercise_name })}
+                className="px-2 h-9 rounded-lg text-[10px] uppercase tracking-widest font-bold text-brand-700 hover:bg-brand-50"
+                aria-label={`How to do ${ex.exercise_name}`}
+              >
+                How
+              </button>
               <button onClick={() => move(ex.id, -1)} className="btn-ghost px-2" aria-label="Move up">↑</button>
               <button onClick={() => move(ex.id, 1)} className="btn-ghost px-2" aria-label="Move down">↓</button>
               <button onClick={() => removeRow(ex.id)} className="btn-danger" aria-label="Remove"><IconTrash /></button>
@@ -165,6 +174,13 @@ export default function ProgramEditor() {
       </div>
 
       {showPicker && <ExercisePicker onPick={handlePick} onClose={() => setShowPicker(false)} />}
+      {demoFor && (
+        <ExerciseDemo
+          exerciseId={demoFor.id}
+          exerciseName={demoFor.name}
+          onClose={() => setDemoFor(null)}
+        />
+      )}
     </AppShell>
   );
 }

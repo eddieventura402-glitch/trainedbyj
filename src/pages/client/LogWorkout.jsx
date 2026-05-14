@@ -10,6 +10,7 @@ import {
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
 import ExercisePicker from "../../components/shared/ExercisePicker";
+import ExerciseDemo from "../../components/shared/ExerciseDemo";
 import { IconPlus, IconTrash, IconDumbbell, IconRun, IconChevronRight } from "../../components/shared/Icons";
 
 const STRENGTH_TYPES = ["upper", "lower", "ab", "custom"];
@@ -145,6 +146,7 @@ function StrengthLogger({ user, programId, workoutType }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [items, setItems] = useState([]); // [{ name, dbId, sets: [{weight, reps}] }]
   const [showPicker, setShowPicker] = useState(false);
+  const [demoFor, setDemoFor] = useState(null);
   const [difficulty, setDifficulty] = useState(7);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -269,6 +271,13 @@ function StrengthLogger({ user, programId, workoutType }) {
           <div key={i} className="card">
             <div className="flex items-center gap-2">
               <div className="font-display font-bold text-brand-900 flex-1">{it.name}</div>
+              <button
+                onClick={() => setDemoFor({ id: it.dbId, name: it.name })}
+                className="px-3 h-10 rounded-lg text-[10px] uppercase tracking-widest font-bold text-brand-700 hover:bg-brand-50"
+                aria-label={`How to do ${it.name}`}
+              >
+                How
+              </button>
               <button onClick={() => removeExercise(i)} className="btn-danger" aria-label="Remove exercise"><IconTrash /></button>
             </div>
             <div className="mt-2 space-y-2">
@@ -328,6 +337,13 @@ function StrengthLogger({ user, programId, workoutType }) {
       </button>
 
       {showPicker && <ExercisePicker onPick={addExercise} onClose={() => setShowPicker(false)} />}
+      {demoFor && (
+        <ExerciseDemo
+          exerciseId={demoFor.id}
+          exerciseName={demoFor.name}
+          onClose={() => setDemoFor(null)}
+        />
+      )}
     </div>
   );
 }

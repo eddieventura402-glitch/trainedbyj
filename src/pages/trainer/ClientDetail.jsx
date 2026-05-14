@@ -16,12 +16,14 @@ import {
   listSessions,
   updateSession,
   listMetrics,
+  updateNextSession,
 } from "../../lib/data";
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
 import { IconPlus, IconShare, IconTrash, IconChevronRight } from "../../components/shared/Icons";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const LOCATIONS = ["SW Location", "SE Location"];
 
 export default function ClientDetail() {
   const { id } = useParams();
@@ -40,12 +42,22 @@ export default function ClientDetail() {
   const [editingFeedback, setEditingFeedback] = useState(null);
   const [feedbackDraft, setFeedbackDraft] = useState("");
   const [metrics, setMetrics] = useState([]);
+  const [nextAt, setNextAt] = useState("");
+  const [nextLoc, setNextLoc] = useState(LOCATIONS[0]);
+  const [nextSaved, setNextSaved] = useState(false);
 
   useEffect(() => {
     if (!id || !user) return;
     (async () => {
       const { data: p } = await getProfile(id);
       setClient(p);
+      if (p?.next_session_at) {
+        // convert timestamp → datetime-local value (YYYY-MM-DDTHH:MM)
+        const d = new Date(p.next_session_at);
+        const pad = (n) => String(n).padStart(2, "0");
+        setNextAt(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+      }
+      if (p?.next_session_location) setNextLoc(p.next_session_location);
       const { data: n } = await getClientNotes(user.id, id);
       if (n) { setNotes(n.content || ""); setNotesRow(n); }
       const { data: sched } = await getSchedule(id);
@@ -60,6 +72,20 @@ export default function ClientDetail() {
       setMetrics(m || []);
     })();
   }, [id, user]);
+
+  const saveNextSession = async () => {
+    const iso = nextAt ? new Date(nextAt).toISOString() : null;
+    await updateNextSession(id, { next_session_at: iso, next_session_location: nextLoc });
+    setClient((c) => c ? { ...c, next_session_at: iso, next_session_location: nextLoc } : c);
+    setNextSaved(true);
+    setTimeout(() => setNextSaved(false), 1500);
+  };
+
+  const clearNextSession = async () => {
+    await updateNextSession(id, { next_session_at: null, next_session_location: null });
+    setClient((c) => c ? { ...c, next_session_at: null, next_session_location: null } : c);
+    setNextAt("");
+  };
 
   const saveNotes = async () => {
     const { data } = await upsertClientNotes(user.id, id, notes, notesRow?.id);
@@ -151,6 +177,43 @@ export default function ClientDetail() {
           {client.phone}
         </a>
       )}
+
+      {/* Next session */}
+      <section className="mt-5">
+        <SectionTitle>Next session</SectionTitle>
+        <div className="card space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="label">When</div>
+              <input
+                type="datetime-local"
+                className="input"
+                value={nextAt}
+                onChange={(e) => setNextAt(e.target.value)}
+              />
+            </div>
+            <div>
+              <div className="label">Where</div>
+              <select className="input" value={nextLoc} onChange={(e) => setNextLoc(e.target.value)}>
+                {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={saveNextSession} className="btn-primary flex-1">Save</button>
+            {client.next_session_at && (
+              <button onClick={clearNextSession} className="btn-ghost">Clear</button>
+            )}
+            {nextSaved && <span className="text-sm text-brand-700 font-semibold">Saved</span>}
+          </div>
+          {client.next_session_at && (
+            <div className="text-sm text-brand-900">
+              Currently set: <span className="font-semibold">{new Date(client.next_session_at).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+              {client.next_session_location && <> at <span className="font-semibold">{client.next_session_location}</span></>}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Notes */}
       <section className="mt-5">
