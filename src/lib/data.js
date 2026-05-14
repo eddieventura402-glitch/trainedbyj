@@ -216,6 +216,32 @@ export async function bulkInsertSets(rows) {
   return supabase.from("session_sets").insert(rows).select();
 }
 
+// Personal records (maxes)
+export async function listMaxes(clientId) {
+  return supabase
+    .from("client_maxes")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("exercise_name");
+}
+
+export async function addMax(row) {
+  return supabase.from("client_maxes").insert(row).select().single();
+}
+
+export async function updateMax(id, fields) {
+  return supabase
+    .from("client_maxes")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+}
+
+export async function deleteMax(id) {
+  return supabase.from("client_maxes").delete().eq("id", id);
+}
+
 // Body metrics
 export async function listMetrics(clientId) {
   return supabase

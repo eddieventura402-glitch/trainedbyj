@@ -18,7 +18,12 @@ import {
   listMetrics,
   updateNextSession,
   removeClient,
+  listMaxes,
+  addMax,
+  updateMax,
+  deleteMax,
 } from "../../lib/data";
+import ExercisePicker from "../../components/shared/ExercisePicker";
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
 import { IconPlus, IconShare, IconTrash, IconChevronRight } from "../../components/shared/Icons";
@@ -49,6 +54,9 @@ export default function ClientDetail() {
   const [nextSaved, setNextSaved] = useState(false);
   const [showRemove, setShowRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [maxes, setMaxes] = useState([]);
+  const [maxModal, setMaxModal] = useState(null); // null | { exercise: {id,name}, weight, reps, notes, editingId? }
+  const [pickingMaxExercise, setPickingMaxExercise] = useState(false);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -74,6 +82,8 @@ export default function ClientDetail() {
       setSessions(sess || []);
       const { data: m } = await listMetrics(id);
       setMetrics(m || []);
+      const { data: mx } = await listMaxes(id);
+      setMaxes(mx || []);
     })();
   }, [id, user]);
 
@@ -83,6 +93,50 @@ export default function ClientDetail() {
     setClient((c) => c ? { ...c, next_session_at: iso, next_session_location: nextLoc } : c);
     setNextSaved(true);
     setTimeout(() => setNextSaved(false), 1500);
+  };
+
+  const openAddMax = () => {
+    setMaxModal({ exercise: null, weight: "", reps: "1", notes: "", editingId: null });
+  };
+
+  const openEditMax = (m) => {
+    setMaxModal({
+      exercise: { id: m.exercise_db_id, name: m.exercise_name },
+      weight: String(m.weight ?? ""),
+      reps: String(m.reps ?? "1"),
+      notes: m.notes || "",
+      editingId: m.id,
+    });
+  };
+
+  const saveMax = async () => {
+    if (!maxModal?.exercise || !maxModal.weight) return;
+    const payload = {
+      exercise_name: maxModal.exercise.name,
+      exercise_db_id: maxModal.exercise.id || null,
+      weight: Number(maxModal.weight),
+      reps: Number(maxModal.reps) || 1,
+      notes: maxModal.notes?.trim() || null,
+    };
+    if (maxModal.editingId) {
+      const { data } = await updateMax(maxModal.editingId, payload);
+      if (data) setMaxes((list) => list.map((m) => (m.id === data.id ? data : m)));
+    } else {
+      const { data } = await addMax({
+        client_id: id,
+        trainer_id: user.id,
+        recorded_date: new Date().toISOString().slice(0, 10),
+        ...payload,
+      });
+      if (data) setMaxes((list) => [...list, data].sort((a, b) => a.exercise_name.localeCompare(b.exercise_name)));
+    }
+    setMaxModal(null);
+  };
+
+  const removeMax = async (m) => {
+    if (!confirm(`Remove max for ${m.exercise_name}?`)) return;
+    await deleteMax(m.id);
+    setMaxes((list) => list.filter((x) => x.id !== m.id));
   };
 
   const doRemoveClient = async () => {
@@ -244,6 +298,38 @@ export default function ClientDetail() {
             <button onClick={saveNotes} className="btn-primary">Save notes</button>
             {notesSaved && <span className="text-sm text-brand-700 font-semibold">Saved</span>}
           </div>
+        </div>
+      </section>
+
+      {/* Personal records (maxes) */}
+      <section className="mt-6">
+        <SectionTitle right={
+          <button onClick={openAddMax} className="btn-ghost">
+            <IconPlus /> Add max
+          </button>
+        }>Personal records</SectionTitle>
+        <div className="space-y-2">
+          {maxes.length === 0 && (
+            <div className="card text-sm text-slate-500">No PRs logged. Tap "Add max" to log one.</div>
+          )}
+          {maxes.map((m) => (
+            <div key={m.id} className="card flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="font-display font-bold text-brand-900 truncate">{m.exercise_name}</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">
+                  {Number(m.weight).toLocaleString()} lb × {m.reps} {m.reps === 1 ? "rep" : "reps"}
+                  {m.recorded_date && <> · {m.recorded_date}</>}
+                </div>
+                {m.notes && <div className="mt-1 text-sm text-slate-700">{m.notes}</div>}
+              </div>
+              <button onClick={() => openEditMax(m)} className="btn-ghost px-3" aria-label={`Edit ${m.exercise_name} max`}>
+                Edit
+              </button>
+              <button onClick={() => removeMax(m)} className="btn-danger" aria-label={`Delete ${m.exercise_name} max`}>
+                <IconTrash />
+              </button>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -427,6 +513,85 @@ export default function ClientDetail() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Add/Edit Max modal */}
+      {maxModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setMaxModal(null)}>
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display font-bold uppercase text-2xl text-brand-900">
+              {maxModal.editingId ? "Edit max" : "Add max"}
+            </h2>
+
+            <div>
+              <div className="label">Exercise</div>
+              <button
+                onClick={() => setPickingMaxExercise(true)}
+                className={`input text-left ${maxModal.exercise ? "text-brand-900 font-semibold" : "text-slate-400"}`}
+              >
+                {maxModal.exercise?.name || "Pick exercise"}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="label">Weight (lb)</div>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  className="input"
+                  value={maxModal.weight}
+                  onChange={(e) => setMaxModal((s) => ({ ...s, weight: e.target.value }))}
+                  autoFocus={!!maxModal.exercise}
+                />
+              </div>
+              <div>
+                <div className="label">Reps</div>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  className="input"
+                  value={maxModal.reps}
+                  onChange={(e) => setMaxModal((s) => ({ ...s, reps: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="label">Notes (optional)</div>
+              <input
+                className="input"
+                value={maxModal.notes}
+                onChange={(e) => setMaxModal((s) => ({ ...s, notes: e.target.value }))}
+                placeholder="Belt, paused, etc."
+              />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={saveMax}
+                disabled={!maxModal.exercise || !maxModal.weight}
+                className="btn-primary flex-1"
+              >
+                {maxModal.editingId ? "Save changes" : "Save max"}
+              </button>
+              <button onClick={() => setMaxModal(null)} className="btn-ghost">
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          {pickingMaxExercise && (
+            <ExercisePicker
+              onPick={(ex) => {
+                setMaxModal((s) => ({ ...s, exercise: { id: ex.id, name: ex.name } }));
+                setPickingMaxExercise(false);
+              }}
+              onClose={() => setPickingMaxExercise(false)}
+            />
+          )}
         </div>
       )}
 

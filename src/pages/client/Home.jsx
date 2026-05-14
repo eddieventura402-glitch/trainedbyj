@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { getSchedule, listClientPrograms, getClientStats } from "../../lib/data";
+import { getSchedule, listClientPrograms, getClientStats, listMaxes } from "../../lib/data";
+import { addToCalendar, googleCalendarUrl } from "../../lib/calendar";
 import AppShell from "../../components/shared/AppShell";
 import PageHeader from "../../components/shared/PageHeader";
 import WelcomeCard from "../../components/shared/WelcomeCard";
@@ -14,6 +15,7 @@ export default function Home() {
   const [schedule, setSchedule] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [stats, setStats] = useState({ totalSessions: 0, totalVolume: 0, lastDate: null });
+  const [maxes, setMaxes] = useState([]);
 
   useEffect(() => {
     if (!user) return;
@@ -23,6 +25,8 @@ export default function Home() {
       const { data: cp } = await listClientPrograms(user.id);
       setAssignments(cp || []);
       setStats(await getClientStats(user.id));
+      const { data: mx } = await listMaxes(user.id);
+      setMaxes(mx || []);
     })();
   }, [user]);
 
@@ -66,9 +70,41 @@ export default function Home() {
               {new Date(profile.next_session_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
               {profile.next_session_location && <> · {profile.next_session_location}</>}
             </div>
-            <Link to="/client/log" className="mt-4 inline-flex items-center gap-2 px-5 h-12 rounded-xl bg-white text-brand-900 font-semibold uppercase tracking-wide">
-              <IconPlus /> Start workout
-            </Link>
+            <div className="mt-4 flex flex-col gap-2">
+              <Link to="/client/log" className="inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-white text-brand-900 font-semibold uppercase tracking-wide">
+                <IconPlus /> Start workout
+              </Link>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() =>
+                    addToCalendar({
+                      title: "Training with Jared",
+                      location: profile.next_session_location || "",
+                      description: "TrainedByJ session",
+                      startsAt: profile.next_session_at,
+                      durationMinutes: 60,
+                    })
+                  }
+                  className="px-3 h-11 rounded-xl bg-brand-700 text-white font-semibold uppercase tracking-wide text-sm"
+                >
+                  Add to calendar
+                </button>
+                <a
+                  href={googleCalendarUrl({
+                    title: "Training with Jared",
+                    location: profile.next_session_location || "",
+                    description: "TrainedByJ session",
+                    startsAt: profile.next_session_at,
+                    durationMinutes: 60,
+                  })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 h-11 rounded-xl bg-brand-700 text-white font-semibold uppercase tracking-wide text-sm grid place-items-center"
+                >
+                  Google Cal
+                </a>
+              </div>
+            </div>
           </div>
         </section>
       )}
@@ -130,6 +166,25 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Personal records */}
+      {maxes.length > 0 && (
+        <section className="mt-6">
+          <h2 className="font-display font-bold uppercase text-lg text-brand-900 mb-2">Your PRs</h2>
+          <div className="space-y-2">
+            {maxes.map((m) => (
+              <div key={m.id} className="card">
+                <div className="font-display font-bold text-brand-900">{m.exercise_name}</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">
+                  {Number(m.weight).toLocaleString()} lb × {m.reps} {m.reps === 1 ? "rep" : "reps"}
+                  {m.recorded_date && <> · {m.recorded_date}</>}
+                </div>
+                {m.notes && <div className="mt-1 text-sm text-slate-700">{m.notes}</div>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </AppShell>
   );
 }
