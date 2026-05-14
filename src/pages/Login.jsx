@@ -13,6 +13,18 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  // Default to "no trainer yet" so the Get Started CTA shows on initial render
+  // (and during the brief async check). The CTA hides only once we confirm a
+  // trainer profile exists.
+  const [trainerExists, setTrainerExists] = useState(false);
+
+  useEffect(() => {
+    if (!envConfigured()) return;
+    (async () => {
+      const { data, error } = await supabase.rpc("trainer_exists");
+      if (!error && data === true) setTrainerExists(true);
+    })();
+  }, []);
 
   // If the trainer signs in but has no profile row yet (post email-confirm), create it.
   useEffect(() => {
@@ -62,23 +74,27 @@ export default function Login() {
             </div>
           )}
 
-          {/* First-time CTA — most prominent thing on the page */}
-          <div className="card mb-5 bg-brand-900 border-brand-900 text-center">
-            <div className="text-xs uppercase tracking-widest font-bold text-brand-200">First time here?</div>
-            <h2 className="font-display font-bold text-2xl text-white uppercase mt-1 leading-tight">Set up your trainer account</h2>
-            <Link
-              to="/setup"
-              className="mt-4 inline-flex items-center justify-center px-5 h-12 rounded-xl bg-white text-brand-900 font-semibold uppercase tracking-wide w-full"
-            >
-              Get started
-            </Link>
-          </div>
+          {/* First-time CTA — shown only until a trainer has been created */}
+          {!trainerExists && (
+            <>
+              <div className="card mb-5 bg-brand-900 border-brand-900 text-center">
+                <div className="text-xs uppercase tracking-widest font-bold text-brand-200">First time here?</div>
+                <h2 className="font-display font-bold text-2xl text-white uppercase mt-1 leading-tight">Set up your trainer account</h2>
+                <Link
+                  to="/setup"
+                  className="mt-4 inline-flex items-center justify-center px-5 h-12 rounded-xl bg-white text-brand-900 font-semibold uppercase tracking-wide w-full"
+                >
+                  Get started
+                </Link>
+              </div>
 
-          <div className="flex items-center gap-3 my-5 text-xs uppercase tracking-widest font-bold text-slate-400">
-            <div className="flex-1 h-px bg-brand-100" />
-            <span>Or sign in</span>
-            <div className="flex-1 h-px bg-brand-100" />
-          </div>
+              <div className="flex items-center gap-3 my-5 text-xs uppercase tracking-widest font-bold text-slate-400">
+                <div className="flex-1 h-px bg-brand-100" />
+                <span>Or sign in</span>
+                <div className="flex-1 h-px bg-brand-100" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={submit} className="card space-y-4">
             <div>

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { supabase, envConfigured } from "../lib/supabase";
 import { Wordmark } from "../components/shared/Logo";
 
@@ -13,6 +13,22 @@ export default function Setup() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [needsConfirm, setNeedsConfirm] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [trainerAlreadyExists, setTrainerAlreadyExists] = useState(false);
+
+  useEffect(() => {
+    if (!envConfigured()) {
+      setChecking(false);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase.rpc("trainer_exists");
+      // If the RPC doesn't exist yet (migration not run), don't block setup —
+      // fall through so the trainer can still get started.
+      if (!error && data === true) setTrainerAlreadyExists(true);
+      setChecking(false);
+    })();
+  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -62,6 +78,18 @@ export default function Setup() {
     }
     nav("/trainer", { replace: true });
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-dvh grid place-items-center bg-white text-brand-900 font-display text-2xl uppercase tracking-wide">
+        Loading
+      </div>
+    );
+  }
+
+  if (trainerAlreadyExists) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="min-h-dvh bg-white">
