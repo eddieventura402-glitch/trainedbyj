@@ -15,9 +15,10 @@ export default function ClientList() {
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteLink, setInviteLink] = useState("");
+  const [inviteFirstName, setInviteFirstName] = useState("");
+  const [inviteToken, setInviteToken] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -45,14 +46,39 @@ export default function ClientList() {
       alert(error.message);
       return;
     }
-    const link = `${window.location.origin}/join?token=${data.token}`;
-    setInviteLink(link);
+    setInviteToken(data.token);
   };
 
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+
+  const inviteMessage = () => {
+    const first = inviteFirstName.trim() || "there";
+    return `Hey ${first}, welcome to the team.
+
+I've set you up on TrainedByJ — that's the app we'll use to track every workout, log your progress, and stay connected between sessions.
+
+Get started in 30 seconds:
+
+1) Open ${appUrl} on your phone
+2) Tap "I have an invite code" at the bottom
+3) Paste this code: ${inviteToken}
+4) Set your name and password
+
+See you soon.
+- Jared`;
+  };
+
+  const copyText = async (label, text) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(label);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  const closeInvite = () => {
+    setShowInvite(false);
+    setInviteToken("");
+    setInviteEmail("");
+    setInviteFirstName("");
   };
 
   return (
@@ -130,31 +156,80 @@ export default function ClientList() {
       </div>
 
       {showInvite && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={() => { setShowInvite(false); setInviteLink(""); setInviteEmail(""); }}>
-          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={closeInvite}>
+          <div className="bg-white w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-display font-bold uppercase text-2xl text-brand-900">Invite a client</h2>
-            {!inviteLink ? (
+
+            {!inviteToken ? (
               <form onSubmit={generateInvite} className="space-y-3">
                 <div>
-                  <label className="label" htmlFor="invite-email">Client email</label>
-                  <input id="invite-email" type="email" required className="input" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+                  <label className="label" htmlFor="invite-first">Their first name</label>
+                  <input
+                    id="invite-first"
+                    className="input"
+                    value={inviteFirstName}
+                    onChange={(e) => setInviteFirstName(e.target.value)}
+                    placeholder="e.g. Sarah"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Used to personalize the message you send.</p>
+                </div>
+                <div>
+                  <label className="label" htmlFor="invite-email">Their email</label>
+                  <input
+                    id="invite-email"
+                    type="email"
+                    required
+                    className="input"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="client@example.com"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">They'll use this email to sign in.</p>
                 </div>
                 <button type="submit" disabled={inviteBusy} className="btn-primary w-full">
-                  {inviteBusy ? "Generating" : "Generate invite link"}
+                  {inviteBusy ? "Generating" : "Generate invite"}
                 </button>
               </form>
             ) : (
-              <div className="space-y-3">
-                <div className="text-sm text-slate-600">Send this link to your client. They will set up their account and connect to you automatically.</div>
-                <div className="p-3 bg-brand-50 border border-brand-100 rounded-xl break-all text-sm font-mono text-brand-900">
-                  {inviteLink}
+              <div className="space-y-4">
+                <div className="card bg-brand-50 border-brand-200">
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-brand-700">Invite code</div>
+                  <div className="font-mono text-brand-900 text-lg break-all mt-1">{inviteToken}</div>
+                  <button
+                    onClick={() => copyText("token", inviteToken)}
+                    className="btn-ghost mt-2"
+                  >
+                    {copiedField === "token" ? <><IconCheck /> Copied</> : <><IconCopy /> Copy code</>}
+                  </button>
                 </div>
-                <button onClick={copyLink} className="btn-primary w-full">
-                  {copied ? <><IconCheck /> Copied</> : <><IconCopy /> Copy link</>}
-                </button>
-                <button onClick={() => { setShowInvite(false); setInviteLink(""); setInviteEmail(""); }} className="btn-ghost w-full">
-                  Done
-                </button>
+
+                <div className="card">
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-brand-600">Ready-to-send message</div>
+                  <pre className="mt-2 whitespace-pre-wrap text-sm text-slate-800 font-sans leading-snug">
+{inviteMessage()}
+                  </pre>
+                  <div className="flex flex-col gap-2 mt-3">
+                    <button
+                      onClick={() => copyText("message", inviteMessage())}
+                      className="btn-primary w-full"
+                    >
+                      {copiedField === "message" ? <><IconCheck /> Copied message</> : <><IconCopy /> Copy full message</>}
+                    </button>
+                    <a
+                      href={`sms:?body=${encodeURIComponent(inviteMessage())}`}
+                      className="btn-secondary w-full"
+                    >
+                      Open in Messages
+                    </a>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 text-center">
+                  Paste the message into a text or email. Your client opens {appUrl.replace(/^https?:\/\//, "")},
+                  taps "I have an invite code," and pastes the code.
+                </p>
+
+                <button onClick={closeInvite} className="btn-ghost w-full">Done</button>
               </div>
             )}
           </div>

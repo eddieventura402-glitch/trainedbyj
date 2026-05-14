@@ -87,14 +87,16 @@ export default function Join() {
         {!invite && (
           <div className="card space-y-4">
             <div>
-              <label className="label" htmlFor="token">Invite token</label>
+              <label className="label" htmlFor="token">Invite code</label>
               <input
                 id="token"
                 className="input"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                placeholder="Paste your token"
+                placeholder="Paste the code Jared sent you"
+                autoFocus
               />
+              <p className="text-xs text-slate-500 mt-1">A long string of letters and numbers from Jared's text or email.</p>
             </div>
             {err && (
               <div role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">

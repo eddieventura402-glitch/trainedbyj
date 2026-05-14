@@ -131,10 +131,14 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-500">
-            <p>
-              New client? <Link to="/join" className="text-brand-700 font-semibold">Open your invite link</Link>
-            </p>
+          <div className="mt-6">
+            <Link
+              to="/join"
+              className="block w-full text-center py-3 rounded-xl border-2 border-brand-200 hover:border-brand-600 hover:bg-brand-50 transition-colors"
+            >
+              <div className="text-xs uppercase tracking-widest font-bold text-brand-600">New client?</div>
+              <div className="font-display font-bold text-brand-900 uppercase mt-0.5">I have an invite code</div>
+            </Link>
           </div>
         </div>
       </div>
